@@ -23,11 +23,23 @@ api.interceptors.request.use((reqConfig) => {
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    const message =
+    let message =
       error.response?.data?.error ||
-      error.response?.data?.message ||
-      error.message ||
-      'An unexpected network error occurred';
+      error.response?.data?.message;
+
+    if (!message) {
+      if (
+        (error.response?.status === 500 || error.code === 'ECONNREFUSED') &&
+        (typeof error.response?.data === 'string' &&
+          (error.response.data.includes('ECONNREFUSED') || error.response.data.includes('Proxy error')))
+      ) {
+        message = 'Backend server is offline or disconnected on port 5000. Please ensure the backend server is running.';
+      } else if (error.response?.status === 500) {
+        message = error.response?.data?.error || 'Backend server connection error (Port 5000). Please check backend console.';
+      } else {
+        message = error.message || 'An unexpected network error occurred';
+      }
+    }
     return Promise.reject(new Error(message));
   }
 );
