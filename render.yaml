@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: secure-qr-auth-server
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: DATABASE_URL
+        sync: false
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: QR_HMAC_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: QR_TOKEN_TTL_SECONDS
+        value: 90
+      - key: SESSION_TTL_SECONDS
+        value: 86400
