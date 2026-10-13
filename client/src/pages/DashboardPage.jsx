@@ -50,32 +50,34 @@ export const DashboardPage = () => {
   return (
     <div className="max-w-7xl mx-auto my-8 px-4 sm:px-6 lg:px-8 space-y-8">
       {/* Top Welcome Header */}
-      <div className="bg-cyber-850 border border-cyber-700/80 rounded-2xl p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="space-y-2">
+      <div className="bg-cyber-850 border border-cyber-700/80 rounded-2xl p-5 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-5 sm:gap-6">
+        <div className="space-y-2 max-w-full">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyber-emerald/10 text-cyber-emerald border border-cyber-emerald/20 text-xs font-mono">
-            <CheckCircle2 className="w-3.5 h-3.5" />
+            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
             <span>Cryptographic Session Validated</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+          <h1 className="text-xl sm:text-3xl font-extrabold text-white">
             Welcome, <span className="text-cyber-cyan">{user?.fullName}</span>
           </h1>
-          <p className="text-sm text-slate-400 font-mono">
-            Subject ID: <code className="text-slate-300">{user?.id}</code> • Email: <code className="text-slate-300">{user?.email}</code>
+          <p className="text-xs sm:text-sm text-slate-400 font-mono break-all leading-relaxed">
+            <span>Subject ID: <code className="text-slate-300">{user?.id}</code></span>
+            <span className="hidden sm:inline"> • </span>
+            <span className="block sm:inline mt-0.5 sm:mt-0">Email: <code className="text-slate-300">{user?.email}</code></span>
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto">
           <Link
             to="/qr-login"
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-cyber-cyan text-cyber-900 font-bold text-xs hover:bg-cyber-cyanGlow transition-all shadow-glow"
+            className="flex-1 sm:flex-none inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-cyber-cyan text-cyber-900 font-bold text-xs hover:bg-cyber-cyanGlow transition-all shadow-glow text-center"
           >
             <QrCode className="w-4 h-4" />
-            <span>Generate New QR</span>
+            <span>Generate QR</span>
           </Link>
 
           <button
             onClick={fetchDashboardData}
-            className="p-2.5 rounded-xl bg-cyber-800 text-slate-300 hover:text-white border border-cyber-700 transition-colors"
+            className="p-2.5 rounded-xl bg-cyber-800 text-slate-300 hover:text-white border border-cyber-700 transition-colors shrink-0"
             title="Refresh Metrics"
           >
             <RefreshCw className="w-4 h-4" />
@@ -228,7 +230,7 @@ export const DashboardPage = () => {
             </div>
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs font-mono">
+              <table className="w-full text-left text-xs font-mono min-w-[480px]">
                 <thead className="text-slate-400 uppercase border-b border-cyber-700/50">
                   <tr>
                     <th className="py-2.5 px-3">Event Type</th>

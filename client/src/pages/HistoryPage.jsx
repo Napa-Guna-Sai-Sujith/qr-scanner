@@ -105,6 +105,11 @@ export const HistoryPage = () => {
 
       {/* Logs Table */}
       <div className="bg-cyber-850 border border-cyber-700/80 rounded-2xl overflow-hidden shadow-xl">
+        {/* Mobile Swipe Hint */}
+        <div className="sm:hidden px-4 py-2 bg-cyber-900/60 text-[11px] text-cyber-cyan border-b border-cyber-700/40 font-mono">
+          <span>Swipe horizontally for full audit details →</span>
+        </div>
+
         {loading ? (
           <div className="py-16 flex flex-col items-center justify-center space-y-3">
             <Loader2 className="w-8 h-8 text-cyber-cyan animate-spin" />
@@ -116,7 +121,7 @@ export const HistoryPage = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs font-mono">
+            <table className="w-full text-left text-xs font-mono min-w-[550px]">
               <thead className="bg-cyber-900/90 text-slate-400 uppercase border-b border-cyber-700/80">
                 <tr>
                   <th className="py-3.5 px-4">Event Classification</th>

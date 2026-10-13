@@ -63,8 +63,8 @@ export const RegisterPage = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto my-12 px-4">
-      <div className="bg-cyber-850 border border-cyber-700/80 rounded-2xl p-8 shadow-xl space-y-6">
+    <div className="max-w-md mx-auto my-6 sm:my-12 px-4">
+      <div className="bg-cyber-850 border border-cyber-700/80 rounded-2xl p-5 sm:p-8 shadow-xl space-y-6">
         <div className="text-center space-y-2">
           <div className="w-12 h-12 mx-auto rounded-xl bg-cyber-900 border border-cyber-cyan/40 flex items-center justify-center text-cyber-cyan">
             <ShieldCheck className="w-6 h-6" />

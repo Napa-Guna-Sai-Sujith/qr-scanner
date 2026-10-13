@@ -212,9 +212,9 @@ export const QRApprovalPage = () => {
             {/* Authenticated Approver Identity Check */}
             {user ? (
               <div className="p-3.5 rounded-xl bg-cyber-800/80 border border-cyber-700 text-xs space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
                   <span className="text-slate-400">Approving Account:</span>
-                  <span className="text-white font-semibold">{user.fullName} ({user.email})</span>
+                  <span className="text-white font-semibold truncate">{user.fullName} ({user.email})</span>
                 </div>
                 <div>
                   <label className="block text-slate-400 mb-1">Device Label for Enrolled Trust:</label>
@@ -222,7 +222,7 @@ export const QRApprovalPage = () => {
                     type="text"
                     value={deviceName}
                     onChange={(e) => setDeviceName(e.target.value)}
-                    className="w-full px-2.5 py-1.5 bg-cyber-900 border border-cyber-700 rounded text-white text-xs font-sans focus:outline-none focus:border-cyber-cyan"
+                    className="w-full px-3 py-2 bg-cyber-900 border border-cyber-700 rounded-lg text-white text-xs font-sans focus:outline-none focus:border-cyber-cyan"
                   />
                 </div>
               </div>
@@ -239,7 +239,7 @@ export const QRApprovalPage = () => {
                   <Link
                     to="/login"
                     state={{ from: { pathname: `/qr-approve`, search: `?token=${encodeURIComponent(token)}` } }}
-                    className="px-3 py-1.5 bg-amber-500 text-slate-900 font-bold rounded-lg hover:bg-amber-400 transition-colors"
+                    className="w-full sm:w-auto text-center px-4 py-2.5 bg-amber-500 text-slate-900 font-bold rounded-lg hover:bg-amber-400 transition-colors"
                   >
                     Log In to Approve
                   </Link>
@@ -249,22 +249,12 @@ export const QRApprovalPage = () => {
 
             {/* Action Buttons */}
             {details.valid && (
-              <div className="grid grid-cols-2 gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleReject}
-                  disabled={actionLoading}
-                  className="py-3 px-4 rounded-xl font-bold bg-rose-600/20 text-rose-300 border border-rose-500/40 hover:bg-rose-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
-                >
-                  <XCircle className="w-4 h-4" />
-                  <span>Reject</span>
-                </button>
-
+              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 pt-2">
                 <button
                   type="button"
                   onClick={handleApprove}
                   disabled={actionLoading || !user}
-                  className="py-3 px-4 rounded-xl font-bold bg-cyber-cyan text-cyber-900 hover:bg-cyber-cyanGlow transition-all shadow-glow flex items-center justify-center gap-2 disabled:opacity-50 text-sm"
+                  className="w-full py-3.5 px-4 rounded-xl font-bold bg-cyber-cyan text-cyber-900 hover:bg-cyber-cyanGlow transition-all shadow-glow flex items-center justify-center gap-2 disabled:opacity-50 text-sm order-1 sm:order-2"
                 >
                   {actionLoading ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -272,6 +262,16 @@ export const QRApprovalPage = () => {
                     <ShieldCheck className="w-4 h-4" />
                   )}
                   <span>Approve Login</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleReject}
+                  disabled={actionLoading}
+                  className="w-full py-3.5 px-4 rounded-xl font-bold bg-rose-600/20 text-rose-300 border border-rose-500/40 hover:bg-rose-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm order-2 sm:order-1"
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>Reject Request</span>
                 </button>
               </div>
             )}

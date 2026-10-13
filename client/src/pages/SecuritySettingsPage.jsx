@@ -86,24 +86,24 @@ export const SecuritySettingsPage = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto my-10 px-4 space-y-8">
+    <div className="max-w-4xl mx-auto my-6 sm:my-10 px-4 space-y-6 sm:space-y-8">
       {/* Title */}
       <div className="space-y-1">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white flex items-center gap-2">
-          <KeyRound className="w-7 h-7 text-cyber-cyan" />
+        <h1 className="text-xl sm:text-3xl font-bold text-white flex items-center gap-2">
+          <KeyRound className="w-6 h-6 sm:w-7 sm:h-7 text-cyber-cyan shrink-0" />
           <span>Security & Credential Settings</span>
         </h1>
-        <p className="text-sm text-slate-400">
+        <p className="text-xs sm:text-sm text-slate-400">
           Manage master password credentials, authorized authenticating devices, and session security.
         </p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
         {/* Change Master Password */}
-        <div className="bg-cyber-850 border border-cyber-700/80 rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="bg-cyber-850 border border-cyber-700/80 rounded-2xl p-5 sm:p-6 shadow-xl space-y-4">
           <div className="flex items-center gap-2 border-b border-cyber-700/60 pb-3">
             <Lock className="w-5 h-5 text-cyber-cyan" />
-            <h2 className="text-base font-bold text-white">Rotate Master Password</h2>
+            <h2 className="text-sm sm:text-base font-bold text-white">Rotate Master Password</h2>
           </div>
 
           {passwordMessage && (

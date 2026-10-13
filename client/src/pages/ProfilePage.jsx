@@ -59,15 +59,15 @@ export const ProfilePage = () => {
   };
 
   return (
-    <div className="max-w-2xl mx-auto my-10 px-4 space-y-6">
-      <div className="bg-cyber-850 border border-cyber-700/80 rounded-2xl p-6 sm:p-8 shadow-xl space-y-6">
-        <div className="flex items-center gap-4 border-b border-cyber-700/60 pb-6">
-          <div className="w-16 h-16 rounded-2xl bg-cyber-900 border border-cyber-cyan/40 flex items-center justify-center text-cyber-cyan">
+    <div className="max-w-2xl mx-auto my-6 sm:my-10 px-4 space-y-6">
+      <div className="bg-cyber-850 border border-cyber-700/80 rounded-2xl p-5 sm:p-8 shadow-xl space-y-6">
+        <div className="flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-4 border-b border-cyber-700/60 pb-6">
+          <div className="w-16 h-16 rounded-2xl bg-cyber-900 border border-cyber-cyan/40 flex items-center justify-center text-cyber-cyan shrink-0">
             <User className="w-8 h-8" />
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-white">{user?.fullName}</h1>
-            <p className="text-sm text-slate-400 font-mono">{user?.email}</p>
+          <div className="max-w-full truncate">
+            <h1 className="text-xl sm:text-2xl font-bold text-white truncate">{user?.fullName}</h1>
+            <p className="text-xs sm:text-sm text-slate-400 font-mono truncate">{user?.email}</p>
           </div>
         </div>
 

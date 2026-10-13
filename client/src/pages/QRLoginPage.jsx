@@ -154,9 +154,9 @@ export const QRLoginPage = () => {
         )}
 
         {/* QR Code Container */}
-        <div className="relative inline-block p-4 sm:p-6 bg-white rounded-2xl shadow-glow mx-auto border-4 border-cyber-800">
+        <div className="relative inline-block p-3 sm:p-6 bg-white rounded-2xl shadow-glow mx-auto border-4 border-cyber-800 max-w-[calc(100vw-3rem)]">
           {loading ? (
-            <div className="w-64 h-64 flex flex-col items-center justify-center space-y-3 text-slate-800">
+            <div className="w-56 h-56 sm:w-72 sm:h-72 max-w-full flex flex-col items-center justify-center space-y-3 text-slate-800">
               <Loader2 className="w-10 h-10 animate-spin text-cyber-cyan" />
               <span className="text-xs font-mono font-medium">Generating Nonce & HMAC...</span>
             </div>
@@ -165,7 +165,7 @@ export const QRLoginPage = () => {
               <img
                 src={challenge.qrCodeDataUrl}
                 alt="Authentication QR Challenge"
-                className={`w-64 h-64 sm:w-72 sm:h-72 object-contain transition-all duration-300 ${
+                className={`w-56 h-56 sm:w-72 sm:h-72 max-w-full object-contain transition-all duration-300 ${
                   status === 'expired' || status === 'rejected' ? 'blur-sm opacity-30' : ''
                 }`}
               />
@@ -200,7 +200,7 @@ export const QRLoginPage = () => {
               )}
             </div>
           ) : (
-            <div className="w-64 h-64 flex items-center justify-center">
+            <div className="w-56 h-56 sm:w-72 sm:h-72 flex items-center justify-center">
               <button
                 onClick={initiateChallenge}
                 className="px-4 py-2 bg-cyber-cyan text-cyber-900 font-bold rounded-xl text-sm"
@@ -216,12 +216,12 @@ export const QRLoginPage = () => {
           <div className="bg-cyber-900/90 border border-cyber-700/60 rounded-xl p-4 text-left space-y-3">
             <div className="flex items-center justify-between text-xs">
               <span className="font-mono text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
-                <Smartphone className="w-4 h-4 text-cyber-cyan" />
-                Examiner / Multi-Device Testing Aids:
+                <Smartphone className="w-4 h-4 text-cyber-cyan shrink-0" />
+                <span>Multi-Device Testing Aids:</span>
               </span>
               <button
                 onClick={initiateChallenge}
-                className="text-cyber-cyan hover:underline flex items-center gap-1 text-xs"
+                className="text-cyber-cyan hover:underline flex items-center gap-1 text-xs shrink-0"
                 title="Regenerate Challenge"
               >
                 <RefreshCw className="w-3 h-3" />
@@ -230,28 +230,28 @@ export const QRLoginPage = () => {
             </div>
 
             <p className="text-xs text-slate-400">
-              You can scan this QR code with a mobile camera, open the built-in{' '}
-              <Link to="/qr-scan" className="text-cyber-cyan underline">QR Scanner</Link>, or click below to simulate phone approval in another tab:
+              Scan this QR code with a phone camera, use the{' '}
+              <Link to="/qr-scan" className="text-cyber-cyan underline">QR Scanner</Link>, or click below to simulate approval:
             </p>
 
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <a
                 href={challenge.scanUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="flex-1 min-w-[200px] inline-flex items-center justify-center gap-2 px-3 py-2 bg-cyber-800 hover:bg-cyber-700 text-cyber-cyan text-xs font-semibold rounded-lg border border-cyber-cyan/30 transition-all"
+                className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 bg-cyber-800 hover:bg-cyber-700 text-cyber-cyan text-xs font-semibold rounded-lg border border-cyber-cyan/30 transition-all text-center"
               >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Open Approval Page in New Tab</span>
+                <ExternalLink className="w-3.5 h-3.5 shrink-0" />
+                <span>Open Approval Page</span>
               </a>
 
               <button
                 type="button"
                 onClick={handleCopyLink}
-                className="inline-flex items-center justify-center gap-1.5 px-3 py-2 bg-cyber-800 hover:bg-cyber-700 text-slate-300 text-xs font-medium rounded-lg border border-cyber-700 transition-all"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-3 py-2.5 bg-cyber-800 hover:bg-cyber-700 text-slate-300 text-xs font-medium rounded-lg border border-cyber-700 transition-all"
               >
                 {copied ? <Check className="w-3.5 h-3.5 text-cyber-emerald" /> : <Copy className="w-3.5 h-3.5" />}
-                <span>{copied ? 'Copied!' : 'Copy Link'}</span>
+                <span>{copied ? 'Copied Link' : 'Copy Link'}</span>
               </button>
             </div>
           </div>

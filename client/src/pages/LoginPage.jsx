@@ -47,14 +47,14 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="max-w-md mx-auto my-12 px-4 space-y-6">
+    <div className="max-w-md mx-auto my-6 sm:my-12 px-4 space-y-5 sm:space-y-6">
       {/* QR Login Banner */}
       <div className="bg-gradient-to-r from-cyber-cyan/15 via-blue-500/10 to-transparent border border-cyber-cyan/30 rounded-2xl p-4 flex items-center justify-between">
         <div className="space-y-1">
           <span className="text-xs font-mono uppercase tracking-wider text-cyber-cyan font-bold flex items-center gap-1.5">
             <QrCode className="w-3.5 h-3.5" /> Password-Free Alternative
           </span>
-          <p className="text-sm text-slate-200">Authenticate securely using camera & cryptographic token</p>
+          <p className="text-xs sm:text-sm text-slate-200">Authenticate securely using camera & cryptographic token</p>
         </div>
         <Link
           to="/qr-login"
@@ -64,7 +64,7 @@ export const LoginPage = () => {
         </Link>
       </div>
 
-      <div className="bg-cyber-850 border border-cyber-700/80 rounded-2xl p-8 shadow-xl space-y-6">
+      <div className="bg-cyber-850 border border-cyber-700/80 rounded-2xl p-5 sm:p-8 shadow-xl space-y-6">
         <div className="text-center space-y-2">
           <div className="w-12 h-12 mx-auto rounded-xl bg-cyber-900 border border-cyber-cyan/40 flex items-center justify-center text-cyber-cyan">
             <Lock className="w-6 h-6" />
