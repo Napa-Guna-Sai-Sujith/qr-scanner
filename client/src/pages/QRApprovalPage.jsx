@@ -119,9 +119,29 @@ export const QRApprovalPage = () => {
         </div>
 
         {error && (
-          <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-start gap-2.5">
-            <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{error}</span>
+          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm space-y-3">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="w-5 h-5 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <span className="font-semibold block">Authentication Challenge Notice</span>
+                <p className="text-xs leading-relaxed text-rose-200">{error}</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={inspectToken}
+                className="px-3.5 py-1.5 bg-rose-600/30 hover:bg-rose-600/40 text-rose-200 rounded-lg text-xs font-semibold border border-rose-500/40 transition-colors inline-flex items-center gap-1.5"
+              >
+                <span>Retry Verification</span>
+              </button>
+              <Link
+                to="/qr-login"
+                className="px-3.5 py-1.5 bg-cyber-800 hover:bg-cyber-700 text-cyber-cyan rounded-lg text-xs font-semibold border border-cyber-cyan/30 transition-colors"
+              >
+                Go to QR Login
+              </Link>
+            </div>
           </div>
         )}
 
@@ -152,6 +172,14 @@ export const QRApprovalPage = () => {
             <p className="text-sm text-slate-300">
               This authentication challenge was declined. The requesting terminal has been locked out.
             </p>
+            <div className="pt-2">
+              <Link
+                to="/qr-login"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-cyber-800 text-slate-300 rounded-xl text-xs font-semibold hover:bg-cyber-700 transition-colors"
+              >
+                <span>Back to QR Login</span>
+              </Link>
+            </div>
           </div>
         )}
 
@@ -209,71 +237,119 @@ export const QRApprovalPage = () => {
               )}
             </div>
 
-            {/* Authenticated Approver Identity Check */}
-            {user ? (
-              <div className="p-3.5 rounded-xl bg-cyber-800/80 border border-cyber-700 text-xs space-y-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
-                  <span className="text-slate-400">Approving Account:</span>
-                  <span className="text-white font-semibold truncate">{user.fullName} ({user.email})</span>
+            {/* Non-valid State Notice (Expired / Consumed / Already Approved) */}
+            {!details.valid && (
+              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 space-y-3">
+                <div className="flex items-start gap-2.5">
+                  <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-bold text-white">
+                      {details.status === 'expired'
+                        ? 'QR Challenge Expired'
+                        : details.status === 'consumed'
+                        ? 'QR Challenge Already Consumed'
+                        : details.status === 'approved'
+                        ? 'QR Challenge Already Approved'
+                        : 'Challenge Inactive'}
+                    </p>
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      {details.status === 'expired'
+                        ? 'For security, each QR code has a strict 120-second lifetime to prevent replay attacks. Please return to the initiating terminal to generate a fresh QR code.'
+                        : details.status === 'consumed'
+                        ? 'This authentication challenge has already been validated and single-use session tokens have been issued.'
+                        : details.status === 'approved'
+                        ? 'This request was approved and the initiating terminal is establishing its encrypted session.'
+                        : 'This challenge is no longer in a pending state and cannot be approved.'}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-slate-400 mb-1">Device Label for Enrolled Trust:</label>
-                  <input
-                    type="text"
-                    value={deviceName}
-                    onChange={(e) => setDeviceName(e.target.value)}
-                    className="w-full px-3 py-2 bg-cyber-900 border border-cyber-700 rounded-lg text-white text-xs font-sans focus:outline-none focus:border-cyber-cyan"
-                  />
-                </div>
-              </div>
-            ) : (
-              <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-2">
-                <div className="flex items-center gap-2 font-bold">
-                  <ShieldAlert className="w-4 h-4 text-amber-400" />
-                  <span>Authentication Required on this Device</span>
-                </div>
-                <p>
-                  You must be logged in on this scanning device to prove your identity before approving login on another screen.
-                </p>
-                <div className="pt-2 flex gap-2">
+
+                <div className="pt-1 flex flex-wrap gap-2">
                   <Link
-                    to="/login"
-                    state={{ from: { pathname: `/qr-approve`, search: `?token=${encodeURIComponent(token)}` } }}
-                    className="w-full sm:w-auto text-center px-4 py-2.5 bg-amber-500 text-slate-900 font-bold rounded-lg hover:bg-amber-400 transition-colors"
+                    to="/qr-login"
+                    className="px-4 py-2 bg-cyber-cyan text-cyber-900 font-bold rounded-xl text-xs hover:bg-cyber-cyanGlow transition-all shadow-glow"
                   >
-                    Log In to Approve
+                    Generate Fresh QR Code
                   </Link>
+                  {user && (
+                    <Link
+                      to="/dashboard"
+                      className="px-4 py-2 bg-cyber-800 text-slate-200 font-semibold rounded-xl text-xs hover:bg-cyber-700 transition-colors border border-cyber-700"
+                    >
+                      Go to Dashboard
+                    </Link>
+                  )}
                 </div>
               </div>
             )}
 
-            {/* Action Buttons */}
+            {/* Authenticated Approver Identity Check (Only shown when challenge is valid & pending) */}
             {details.valid && (
-              <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={handleApprove}
-                  disabled={actionLoading || !user}
-                  className="w-full py-3.5 px-4 rounded-xl font-bold bg-cyber-cyan text-cyber-900 hover:bg-cyber-cyanGlow transition-all shadow-glow flex items-center justify-center gap-2 disabled:opacity-50 text-sm order-1 sm:order-2"
-                >
-                  {actionLoading ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <ShieldCheck className="w-4 h-4" />
-                  )}
-                  <span>Approve Login</span>
-                </button>
+              <>
+                {user ? (
+                  <div className="p-3.5 rounded-xl bg-cyber-800/80 border border-cyber-700 text-xs space-y-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1">
+                      <span className="text-slate-400">Approving Account:</span>
+                      <span className="text-white font-semibold truncate">{user.fullName} ({user.email})</span>
+                    </div>
+                    <div>
+                      <label className="block text-slate-400 mb-1">Device Label for Enrolled Trust:</label>
+                      <input
+                        type="text"
+                        value={deviceName}
+                        onChange={(e) => setDeviceName(e.target.value)}
+                        className="w-full px-3 py-2 bg-cyber-900 border border-cyber-700 rounded-lg text-white text-xs font-sans focus:outline-none focus:border-cyber-cyan"
+                      />
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-2">
+                    <div className="flex items-center gap-2 font-bold">
+                      <ShieldAlert className="w-4 h-4 text-amber-400" />
+                      <span>Authentication Required on this Device</span>
+                    </div>
+                    <p>
+                      You must be logged in on this scanning device to prove your identity before approving login on another screen.
+                    </p>
+                    <div className="pt-2 flex gap-2">
+                      <Link
+                        to="/login"
+                        state={{ from: { pathname: `/qr-approve`, search: `?token=${encodeURIComponent(token)}` } }}
+                        className="w-full sm:w-auto text-center px-4 py-2.5 bg-amber-500 text-slate-900 font-bold rounded-lg hover:bg-amber-400 transition-colors"
+                      >
+                        Log In to Approve
+                      </Link>
+                    </div>
+                  </div>
+                )}
 
-                <button
-                  type="button"
-                  onClick={handleReject}
-                  disabled={actionLoading}
-                  className="w-full py-3.5 px-4 rounded-xl font-bold bg-rose-600/20 text-rose-300 border border-rose-500/40 hover:bg-rose-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm order-2 sm:order-1"
-                >
-                  <XCircle className="w-4 h-4" />
-                  <span>Reject Request</span>
-                </button>
-              </div>
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:grid sm:grid-cols-2 gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleApprove}
+                    disabled={actionLoading || !user}
+                    className="w-full py-3.5 px-4 rounded-xl font-bold bg-cyber-cyan text-cyber-900 hover:bg-cyber-cyanGlow transition-all shadow-glow flex items-center justify-center gap-2 disabled:opacity-50 text-sm order-1 sm:order-2"
+                  >
+                    {actionLoading ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <ShieldCheck className="w-4 h-4" />
+                    )}
+                    <span>Approve Login</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleReject}
+                    disabled={actionLoading}
+                    className="w-full py-3.5 px-4 rounded-xl font-bold bg-rose-600/20 text-rose-300 border border-rose-500/40 hover:bg-rose-600/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 text-sm order-2 sm:order-1"
+                  >
+                    <XCircle className="w-4 h-4" />
+                    <span>Reject Request</span>
+                  </button>
+                </div>
+              </>
             )}
           </div>
         )}

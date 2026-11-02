@@ -182,6 +182,11 @@ export const inspectQrToken = async (req, res) => {
     const row = authRes.rows[0];
     const isExpired = new Date(row.expires_at) <= new Date();
 
+    if (isExpired && row.status === 'pending') {
+      await query(`UPDATE auth_requests SET status = 'expired' WHERE id = $1`, [requestId]);
+      row.status = 'expired';
+    }
+
     return res.json({
       success: true,
       valid: !isExpired && row.status === 'pending',
