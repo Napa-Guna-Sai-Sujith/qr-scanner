@@ -56,6 +56,7 @@ export const qrApi = {
   getStatus: (requestId) => api.get(`/auth/qr/${requestId}`).then((res) => res.data),
   inspect: (token) => api.post('/auth/qr/inspect', { token }).then((res) => res.data),
   approve: (data) => api.post('/auth/qr/approve', data).then((res) => res.data),
+  approveMobile: (requestId) => api.post('/auth/qr/approve-mobile', { requestId }).then((res) => res.data),
   reject: (data) => api.post('/auth/qr/reject', data).then((res) => res.data),
   complete: (data) => api.post('/auth/qr/complete', data).then((res) => res.data),
 };

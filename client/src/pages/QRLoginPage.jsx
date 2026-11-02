@@ -16,6 +16,7 @@ import {
   CheckCircle2,
   Lock,
   ArrowRight,
+  ShieldCheck,
 } from 'lucide-react';
 
 export const QRLoginPage = () => {
@@ -27,7 +28,12 @@ export const QRLoginPage = () => {
   const [copied, setCopied] = useState(false);
   const [completing, setCompleting] = useState(false);
 
-  const { setAuthenticatedUser, checkAuth } = useAuth();
+  // Cross-device scan detection & approval states
+  const [scannerInfo, setScannerInfo] = useState(null);
+  const [approvingMobile, setApprovingMobile] = useState(false);
+  const [mobileApproved, setMobileApproved] = useState(false);
+
+  const { user, setAuthenticatedUser, checkAuth } = useAuth();
   const navigate = useNavigate();
   const pollTimerRef = useRef(null);
   const completingRef = useRef(false);
@@ -57,7 +63,6 @@ export const QRLoginPage = () => {
         }, 800);
       }
     } catch (err) {
-      // If already consumed, check if session is active and navigate
       if (err.message && err.message.toLowerCase().includes('consumed')) {
         setStatus('consumed');
         await checkAuth();
@@ -72,11 +77,9 @@ export const QRLoginPage = () => {
     }
   }, [navigate, setAuthenticatedUser, checkAuth]);
 
-  // Check current challenge status (Used by manual Refresh and VisibilityChange)
+  // Check current challenge status
   const checkCurrentStatus = useCallback(async (showFeedback = true) => {
-    if (!challenge?.requestId) {
-      return;
-    }
+    if (!challenge?.requestId) return;
 
     try {
       if (showFeedback) setCheckingStatus(true);
@@ -84,15 +87,27 @@ export const QRLoginPage = () => {
       const res = await qrApi.getStatus(challenge.requestId);
 
       if (res.success) {
+        if (res.scannerIp) {
+          setScannerInfo({
+            ip: res.scannerIp,
+            scannedAt: res.scannerScannedAt,
+            userAgent: res.scannerUserAgent,
+          });
+        }
+
         if (res.status === 'approved') {
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
           setStatus('approved');
-          await handleComplete(challenge.requestId, challenge.qrToken);
+          if (!user) {
+            await handleComplete(challenge.requestId, challenge.qrToken);
+          }
         } else if (res.status === 'consumed') {
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
           setStatus('consumed');
-          await checkAuth();
-          navigate('/dashboard');
+          if (!user) {
+            await checkAuth();
+            navigate('/dashboard');
+          }
         } else if (res.status === 'rejected') {
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
           setStatus('rejected');
@@ -109,13 +124,36 @@ export const QRLoginPage = () => {
     } finally {
       if (showFeedback) setCheckingStatus(false);
     }
-  }, [challenge, handleComplete, checkAuth, navigate]);
+  }, [challenge, handleComplete, checkAuth, navigate, user]);
+
+  // Device A approves Device B (scanned mobile phone)
+  const handleApproveMobile = async () => {
+    if (!challenge?.requestId) return;
+
+    try {
+      setApprovingMobile(true);
+      setError('');
+      const res = await qrApi.approveMobile(challenge.requestId);
+      if (res.success) {
+        setMobileApproved(true);
+        setStatus('approved');
+      } else {
+        throw new Error(res.error || 'Failed to approve mobile device');
+      }
+    } catch (err) {
+      setError(err.message || 'Could not approve mobile device login');
+    } finally {
+      setApprovingMobile(false);
+    }
+  };
 
   // Generate a brand new QR challenge
   const initiateChallenge = useCallback(async () => {
     try {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
       completingRef.current = false;
+      setScannerInfo(null);
+      setMobileApproved(false);
       setLoading(true);
       setError('');
       setStatus('pending');
@@ -142,7 +180,7 @@ export const QRLoginPage = () => {
     };
   }, [initiateChallenge]);
 
-  // Status Polling Loop (every 1000ms for fast reactivity)
+  // Status Polling Loop (every 1000ms)
   useEffect(() => {
     if (!challenge?.requestId || status !== 'pending') return;
 
@@ -188,9 +226,13 @@ export const QRLoginPage = () => {
             <Lock className="w-3.5 h-3.5" />
             <span>Out-Of-Band Authentication</span>
           </div>
-          <h1 className="text-xl sm:text-3xl font-bold text-white">Cryptographic QR Login</h1>
-          <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto">
-            Scan with your authorized mobile device to verify identity and establish an encrypted session.
+          <h1 className="text-xl sm:text-3xl font-bold text-white">
+            {user ? 'Authorize Mobile Device (Device B)' : 'Cryptographic QR Login'}
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-400 max-w-md mx-auto leading-relaxed">
+            {user
+              ? `Logged in as ${user.fullName} (${user.email}). Scan with your mobile device (Device B) to log in instantly on the phone.`
+              : 'Scan with your authorized mobile device to verify identity and establish an encrypted session.'}
           </p>
         </div>
 
@@ -209,6 +251,66 @@ export const QRLoginPage = () => {
           <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs sm:text-sm flex items-start gap-2.5 text-left">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
             <span>{error}</span>
+          </div>
+        )}
+
+        {/* Live Inbound Scan Alert (Shown when Device B scans the QR code) */}
+        {scannerInfo && user && !mobileApproved && (
+          <div className="p-4 rounded-xl bg-cyber-900 border-2 border-cyber-cyan text-left space-y-3 shadow-glow animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Smartphone className="w-5 h-5 text-cyber-cyan animate-bounce" />
+                <span className="font-bold text-white text-sm">Incoming Login Request from Device B!</span>
+              </div>
+              <span className="px-2 py-0.5 rounded text-[11px] bg-cyber-cyan/20 text-cyber-cyan font-mono">
+                Scanned Just Now
+              </span>
+            </div>
+
+            <div className="text-xs font-mono space-y-1.5 text-slate-300 bg-cyber-950 p-3 rounded-lg border border-cyber-800">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Device B IP:</span>
+                <span className="text-white font-bold">{scannerInfo.ip}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Scanned At:</span>
+                <span className="text-slate-300">
+                  {new Date(scannerInfo.scannedAt || Date.now()).toLocaleTimeString()}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-1">
+              <button
+                type="button"
+                onClick={handleApproveMobile}
+                disabled={approvingMobile}
+                className="w-full py-2.5 bg-cyber-cyan text-cyber-900 font-bold rounded-lg text-xs sm:text-sm hover:bg-cyber-cyanGlow transition-all shadow-glow flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {approvingMobile ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Authorizing Device B...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Approve Mobile Device Login</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Device Approved Card */}
+        {mobileApproved && (
+          <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-center space-y-2 text-emerald-300 animate-fade-in">
+            <CheckCircle2 className="w-8 h-8 mx-auto text-cyber-emerald animate-bounce" />
+            <p className="text-sm font-bold text-white">Mobile Device (Device B) Logged In!</p>
+            <p className="text-xs text-slate-300">
+              Device B has been authorized and issued an active cryptographic session.
+            </p>
           </div>
         )}
 
@@ -246,8 +348,8 @@ export const QRLoginPage = () => {
                 </div>
               )}
 
-              {/* Overlay for Approved / Completing State */}
-              {(status === 'approved' || completing) && (
+              {/* Overlay for Approved State on unauthenticated terminal */}
+              {!user && (status === 'approved' || completing) && (
                 <div className="absolute inset-0 flex flex-col items-center justify-center p-4 bg-slate-950/90 rounded-xl text-white space-y-3 animate-fade-in">
                   <CheckCircle2 className="w-12 h-12 text-cyber-emerald animate-bounce" />
                   <p className="text-sm font-bold text-emerald-400">Approved by Mobile Device!</p>
@@ -270,13 +372,13 @@ export const QRLoginPage = () => {
           )}
         </div>
 
-        {/* Live Status Refresh Action Buttons */}
+        {/* Live Status Action Buttons */}
         {challenge && status === 'pending' && (
           <div className="bg-cyber-900/90 border border-cyber-700/60 rounded-xl p-4 text-left space-y-3">
             <div className="flex items-center justify-between text-xs">
               <span className="font-mono text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
                 <Smartphone className="w-4 h-4 text-cyber-cyan shrink-0" />
-                <span>Approval Status Check:</span>
+                <span>Multi-Device Testing Aids:</span>
               </span>
               <button
                 type="button"
@@ -290,32 +392,34 @@ export const QRLoginPage = () => {
             </div>
 
             <p className="text-xs text-slate-400 leading-relaxed">
-              Once you tap <strong>&quot;Approve Login&quot;</strong> on your other device, this screen will automatically sign you in. If your network delayed the handshake, click below to verify immediately:
+              Scan this QR code with your mobile phone camera to connect.
             </p>
 
-            {/* Prominent Check / Refresh Button */}
-            <div className="pt-1">
-              <button
-                type="button"
-                onClick={() => checkCurrentStatus(true)}
-                disabled={checkingStatus || completing}
-                className="w-full py-2.5 px-4 bg-cyber-cyan text-cyber-900 rounded-xl font-bold text-xs sm:text-sm hover:bg-cyber-cyanGlow transition-all shadow-glow flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {checkingStatus ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    <span>Checking Approval Status...</span>
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="w-4 h-4" />
-                    <span>Check Approval & Log In Now</span>
-                  </>
-                )}
-              </button>
-            </div>
+            {/* Check Status Button */}
+            {!user && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => checkCurrentStatus(true)}
+                  disabled={checkingStatus || completing}
+                  className="w-full py-2.5 px-4 bg-cyber-cyan text-cyber-900 rounded-xl font-bold text-xs sm:text-sm hover:bg-cyber-cyanGlow transition-all shadow-glow flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {checkingStatus ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Checking Approval Status...</span>
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="w-4 h-4" />
+                      <span>Check Approval & Log In Now</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
-            {/* Direct Testing Aids */}
+            {/* Direct Testing Links */}
             <div className="flex flex-col sm:flex-row gap-2 pt-1 border-t border-cyber-800">
               <a
                 href={challenge.scanUrl}
@@ -341,7 +445,7 @@ export const QRLoginPage = () => {
 
         {/* Security Disclaimers */}
         <div className="pt-2 border-t border-cyber-700/60 text-xs text-slate-500 font-mono">
-          Security Protocol: HMAC-SHA256 • 120s TTL • Atomic Conditional UPDATE • Replay-Proof
+          Security Protocol: HMAC-SHA256 • 120s TTL • Inbound Handshake • Cryptographic Trust
         </div>
       </div>
     </div>

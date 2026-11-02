@@ -4,10 +4,11 @@ import {
   getQrStatus,
   inspectQrToken,
   approveQrRequest,
+  approveMobileLogin,
   rejectQrRequest,
   completeQrRequest,
 } from '../controllers/qrController.js';
-import { requireAuth } from '../middleware/authMiddleware.js';
+import { requireAuth, optionalAuth } from '../middleware/authMiddleware.js';
 import { qrInitiateLimiter, qrApprovalLimiter } from '../middleware/rateLimiter.js';
 import {
   validateBody,
@@ -20,9 +21,10 @@ import {
 const router = Router();
 
 // Device A (Browser) endpoints
-router.post('/initiate', qrInitiateLimiter, validateBody(qrInitiateSchema), initiateQrRequest);
+router.post('/initiate', optionalAuth, qrInitiateLimiter, validateBody(qrInitiateSchema), initiateQrRequest);
 router.get('/:requestId', getQrStatus);
 router.post('/complete', validateBody(qrCompleteSchema), completeQrRequest);
+router.post('/approve-mobile', requireAuth, approveMobileLogin);
 
 // Device B (Scanning Phone / Enrolled Authenticator) endpoints
 router.post('/inspect', inspectQrToken);

@@ -20,8 +20,8 @@ export const initiateQrRequest = async (req, res) => {
   const userAgent = req.headers['user-agent'] || 'Unknown';
 
   try {
-    let targetUserId = null;
-    if (email) {
+    let targetUserId = req.user?.id || null;
+    if (!targetUserId && email) {
       const userRes = await query('SELECT id FROM users WHERE email = $1', [email]);
       if (userRes.rows.length > 0) {
         targetUserId = userRes.rows[0].id;
@@ -109,9 +109,12 @@ export const getQrStatus = async (req, res) => {
 
   try {
     const requestRes = await query(
-      `SELECT id, status, expires_at, approved_at, consumed_at, created_at, user_id
-       FROM auth_requests
-       WHERE id = $1`,
+      `SELECT r.id, r.status, r.expires_at, r.approved_at, r.consumed_at, r.created_at, r.user_id,
+              r.scanner_ip, r.scanner_user_agent, r.scanner_scanned_at, r.session_token,
+              u.email as target_email, u.full_name as target_full_name
+       FROM auth_requests r
+       LEFT JOIN users u ON r.user_id = u.id
+       WHERE r.id = $1`,
       [requestId]
     );
 
@@ -149,6 +152,17 @@ export const getQrStatus = async (req, res) => {
       approvedAt: authReq.approved_at,
       consumedAt: authReq.consumed_at,
       createdAt: authReq.created_at,
+      scannerIp: authReq.scanner_ip || null,
+      scannerUserAgent: authReq.scanner_user_agent || null,
+      scannerScannedAt: authReq.scanner_scanned_at || null,
+      sessionToken: authReq.session_token || null,
+      targetUser: authReq.target_email
+        ? {
+            id: authReq.user_id,
+            email: authReq.target_email,
+            fullName: authReq.target_full_name,
+          }
+        : null,
     });
   } catch (error) {
     console.error('[QR STATUS ERROR]:', error);
@@ -165,6 +179,12 @@ export const getQrStatus = async (req, res) => {
  */
 export const inspectQrToken = async (req, res) => {
   const { token } = req.body;
+  const scannerIp =
+    req.headers['x-forwarded-for']?.split(',')[0].trim() ||
+    req.ip ||
+    req.connection.remoteAddress ||
+    '127.0.0.1';
+  const scannerUserAgent = req.headers['user-agent'] || 'Unknown Scanner Device';
 
   const verification = verifySignedQrToken(token);
   if (!verification.valid) {
@@ -178,9 +198,20 @@ export const inspectQrToken = async (req, res) => {
   const tokenHash = hashSha256(nonce);
 
   try {
+    // Record scanner IP and timestamp on the request in DB so Device A sees who scanned it!
+    await query(
+      `UPDATE auth_requests
+       SET scanner_ip = COALESCE(scanner_ip, $1),
+           scanner_user_agent = COALESCE(scanner_user_agent, $2),
+           scanner_scanned_at = COALESCE(scanner_scanned_at, NOW())
+       WHERE id = $3 AND status = 'pending'`,
+      [scannerIp, scannerUserAgent, requestId]
+    );
+
     const authRes = await query(
       `SELECT r.id, r.status, r.ip_address, r.user_agent, r.created_at, r.expires_at,
-              u.email as target_email
+              r.scanner_ip, r.scanner_scanned_at, r.session_token,
+              u.id as user_id, u.email as target_email, u.full_name as target_full_name
        FROM auth_requests r
        LEFT JOIN users u ON r.user_id = u.id
        WHERE r.id = $1 AND r.request_token_hash = $2`,
@@ -204,12 +235,16 @@ export const inspectQrToken = async (req, res) => {
 
     return res.json({
       success: true,
-      valid: !isExpired && row.status === 'pending',
+      valid: !isExpired && (row.status === 'pending' || row.status === 'approved'),
       requestId: row.id,
       status: isExpired && row.status === 'pending' ? 'expired' : row.status,
       targetEmail: row.target_email || null,
+      targetFullName: row.target_full_name || null,
       requestingIp: row.ip_address,
       requestingUserAgent: row.user_agent,
+      scannerIp: row.scanner_ip || scannerIp,
+      scannerScannedAt: row.scanner_scanned_at || new Date().toISOString(),
+      sessionToken: row.session_token || null,
       createdAt: row.created_at,
       expiresAt: row.expires_at,
     });
@@ -539,6 +574,107 @@ export const completeQrRequest = async (req, res) => {
     return res.status(500).json({
       success: false,
       error: 'Internal error finalizing QR authentication session',
+    });
+  }
+};
+
+/**
+ * 7. POST /api/auth/qr/approve-mobile
+ * Device A (already logged in on PC) approves the login request for Device B (scanned mobile phone).
+ * Generates an active session token for Device B and stores it in auth_requests.
+ */
+export const approveMobileLogin = async (req, res) => {
+  const { requestId } = req.body;
+  const approverUserId = req.user?.id;
+  const approverIp = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.ip || '127.0.0.1';
+  const approverUserAgent = req.headers['user-agent'] || 'Unknown';
+
+  if (!approverUserId) {
+    return res.status(401).json({ success: false, error: 'Authentication required on approving device.' });
+  }
+
+  try {
+    const reqRes = await query(
+      `SELECT id, user_id, status, expires_at, scanner_ip, scanner_user_agent
+       FROM auth_requests
+       WHERE id = $1`,
+      [requestId]
+    );
+
+    if (reqRes.rows.length === 0) {
+      return res.status(404).json({ success: false, error: 'Challenge request not found.' });
+    }
+
+    const row = reqRes.rows[0];
+    if (new Date(row.expires_at) <= new Date()) {
+      await query(`UPDATE auth_requests SET status = 'expired' WHERE id = $1`, [requestId]);
+      return res.status(410).json({ success: false, error: 'Challenge request has expired.' });
+    }
+
+    if (row.status !== 'pending') {
+      return res.status(400).json({ success: false, error: `Challenge is already ${row.status}.` });
+    }
+
+    const userRes = await query(
+      `SELECT id, full_name, email, account_status FROM users WHERE id = $1`,
+      [approverUserId]
+    );
+
+    if (userRes.rows.length === 0 || userRes.rows[0].account_status !== 'active') {
+      return res.status(403).json({ success: false, error: 'User account is inactive or not found.' });
+    }
+
+    const targetUser = userRes.rows[0];
+
+    // Create session specifically for Device B
+    const rawSessionToken = generateRandomToken(32);
+    const sessionTokenHash = hashSha256(rawSessionToken);
+    const expiresAt = new Date(Date.now() + config.sessionTtlSeconds * 1000);
+
+    const deviceBIp = row.scanner_ip || approverIp;
+    const deviceBUserAgent = row.scanner_user_agent || 'Mobile Device';
+
+    await query(
+      `INSERT INTO sessions (user_id, session_token_hash, expires_at, ip_address, user_agent)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [targetUser.id, sessionTokenHash, expiresAt, deviceBIp, deviceBUserAgent]
+    );
+
+    // Save session_token on auth_requests and mark approved
+    await query(
+      `UPDATE auth_requests
+       SET status = 'approved',
+           approved_at = NOW(),
+           user_id = $1,
+           session_token = $2
+       WHERE id = $3`,
+      [targetUser.id, rawSessionToken, requestId]
+    );
+
+    await recordAuditLog({
+      userId: targetUser.id,
+      eventType: 'QR_MOBILE_APPROVED',
+      result: 'SUCCESS',
+      ipAddress: approverIp,
+      userAgent: approverUserAgent,
+      details: { requestId, deviceBIp, deviceBUserAgent },
+    });
+
+    return res.json({
+      success: true,
+      message: 'Mobile device login approved successfully!',
+      requestId,
+      targetUser: {
+        id: targetUser.id,
+        fullName: targetUser.full_name,
+        email: targetUser.email,
+      },
+    });
+  } catch (error) {
+    console.error('[APPROVE MOBILE ERROR]:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to approve mobile device login',
     });
   }
 };

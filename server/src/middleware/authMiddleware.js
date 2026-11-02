@@ -54,3 +54,43 @@ export const requireAuth = async (req, res, next) => {
     });
   }
 };
+
+/**
+ * Optional authentication: extracts req.user if present, but does not block if absent
+ */
+export const optionalAuth = async (req, res, next) => {
+  try {
+    const rawToken = req.cookies?.cns_session || req.headers?.authorization?.replace(/^Bearer\s+/i, '');
+    if (!rawToken) {
+      return next();
+    }
+
+    const tokenHash = hashSha256(rawToken);
+    const sessionRes = await query(
+      `SELECT s.id as session_id, s.user_id, s.expires_at, s.revoked_at,
+              u.id, u.full_name, u.email, u.account_status, u.created_at as user_created_at
+       FROM sessions s
+       JOIN users u ON s.user_id = u.id
+       WHERE s.session_token_hash = $1
+         AND s.revoked_at IS NULL
+         AND s.expires_at > NOW()
+         AND u.account_status = 'active'`,
+      [tokenHash]
+    );
+
+    if (sessionRes.rows.length > 0) {
+      const row = sessionRes.rows[0];
+      req.user = {
+        id: row.id,
+        email: row.email,
+        fullName: row.full_name,
+        accountStatus: row.account_status,
+        createdAt: row.user_created_at,
+      };
+      req.sessionId = row.session_id;
+    }
+  } catch (err) {
+    // Non-fatal for optional auth
+  }
+  next();
+};

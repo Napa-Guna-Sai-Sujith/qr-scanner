@@ -46,7 +46,11 @@ CREATE TABLE IF NOT EXISTS auth_requests (
     expires_at TIMESTAMPTZ NOT NULL,
     approved_at TIMESTAMPTZ,
     consumed_at TIMESTAMPTZ,
-    approver_device_id UUID REFERENCES user_devices(id) ON DELETE SET NULL
+    approver_device_id UUID REFERENCES user_devices(id) ON DELETE SET NULL,
+    scanner_ip VARCHAR(64),
+    scanner_user_agent TEXT,
+    scanner_scanned_at TIMESTAMPTZ,
+    session_token TEXT
 );
 
 CREATE INDEX IF NOT EXISTS idx_auth_requests_token_hash ON auth_requests(request_token_hash);
