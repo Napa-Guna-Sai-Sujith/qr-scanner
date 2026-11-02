@@ -42,9 +42,24 @@ export const initiateQrRequest = async (req, res) => {
       [requestId, targetUserId, tokenHash, ipAddress, userAgent, expiresAt]
     );
 
+    // Determine dynamic base URL from request origin/referer or fallback to config
+    let hostBaseUrl = config.frontendUrl;
+    if (req.headers.origin) {
+      hostBaseUrl = req.headers.origin;
+    } else if (req.headers.referer) {
+      try {
+        hostBaseUrl = new URL(req.headers.referer).origin;
+      } catch {
+        // fallback
+      }
+    } else if (req.headers.host && !req.headers.host.includes(':5000')) {
+      const proto = req.secure || req.headers['x-forwarded-proto'] === 'https' ? 'https' : 'http';
+      hostBaseUrl = `${proto}://${req.headers.host}`;
+    }
+
     // Encode verification URL or raw payload for scanning
-    // When scanned by a phone camera, it can point to the web app's approve page
-    const scanUrl = `${config.frontendUrl}/qr-approve?token=${encodeURIComponent(signedToken)}`;
+    // When scanned by a phone camera, it points dynamically to the calling app's approve page
+    const scanUrl = `${hostBaseUrl}/qr-approve?token=${encodeURIComponent(signedToken)}`;
 
     // Generate high-resolution QR Code Data URL
     const qrCodeDataUrl = await QRCode.toDataURL(scanUrl, {
