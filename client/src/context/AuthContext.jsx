@@ -41,6 +41,19 @@ export const AuthProvider = ({ children }) => {
     throw new Error(res.error || 'Login failed');
   };
 
+  const googleLogin = async (credential) => {
+    setError(null);
+    const res = await authApi.googleLogin(credential);
+    if (res.success && res.user) {
+      if (res.token) {
+        localStorage.setItem('cns_session_token', res.token);
+      }
+      setUser(res.user);
+      return res.user;
+    }
+    throw new Error(res.error || 'Google login failed');
+  };
+
   const register = async (fullName, email, password) => {
     setError(null);
     const res = await authApi.register({ fullName, email, password });
@@ -74,6 +87,7 @@ export const AuthProvider = ({ children }) => {
         loading,
         error,
         login,
+        googleLogin,
         register,
         logout,
         checkAuth,

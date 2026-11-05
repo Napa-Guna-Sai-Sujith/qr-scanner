@@ -33,4 +33,5 @@ export const config = {
   sessionTtlSeconds: parseInt(process.env.SESSION_TTL_SECONDS || '86400', 10),
   cookieSameSite: process.env.COOKIE_SAME_SITE || (process.env.NODE_ENV === 'production' ? 'none' : 'lax'),
   cookieSecure: process.env.NODE_ENV === 'production',
+  googleClientId: process.env.GOOGLE_CLIENT_ID || '',
 };

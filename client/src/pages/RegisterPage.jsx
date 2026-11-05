@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import {
   ShieldCheck,
@@ -23,8 +24,25 @@ export const RegisterPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { register } = useAuth();
+  const { register, googleLogin } = useAuth();
   const navigate = useNavigate();
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setLoading(true);
+      setError('');
+      await googleLogin(credentialResponse.credential);
+      navigate('/dashboard');
+    } catch (err) {
+      setError(err.message || 'Google registration failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google sign-in was closed or failed.');
+  };
 
   // Password strength checks
   const rules = [
@@ -191,6 +209,27 @@ export const RegisterPage = () => {
             )}
           </button>
         </form>
+
+        {/* Google OAuth Section */}
+        <div className="space-y-3 pt-1">
+          <div className="relative flex items-center justify-center">
+            <div className="border-t border-cyber-700 w-full" />
+            <span className="bg-cyber-850 px-3 text-[11px] font-mono text-slate-400 uppercase tracking-wider shrink-0">
+              Or Sign Up With Mail
+            </span>
+            <div className="border-t border-cyber-700 w-full" />
+          </div>
+
+          <div className="flex justify-center w-full">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              theme="filled_black"
+              shape="pill"
+              text="signup_with"
+            />
+          </div>
+        </div>
 
         <div className="text-center text-xs text-slate-400 pt-2 border-t border-cyber-700/60">
           Already enrolled?{' '}

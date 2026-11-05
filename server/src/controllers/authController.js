@@ -1,4 +1,5 @@
 import { query } from '../config/db.js';
+import { OAuth2Client } from 'google-auth-library';
 import {
   hashPassword,
   verifyPassword,
@@ -228,4 +229,128 @@ export const getMe = async (req, res) => {
     success: true,
     user: req.user,
   });
+};
+
+/**
+ * POST /api/auth/google
+ * Validates Google ID token credential, finds or creates user, and issues session cookie.
+ */
+export const googleAuth = async (req, res) => {
+  const { credential } = req.body;
+  const ipAddress = req.ip || req.connection.remoteAddress || '127.0.0.1';
+  const userAgent = req.headers['user-agent'] || 'Unknown';
+
+  if (!credential) {
+    return res.status(400).json({
+      success: false,
+      error: 'Google ID token credential is required.',
+    });
+  }
+
+  try {
+    const client = new OAuth2Client(config.googleClientId || undefined);
+
+    // Verify the Google ID Token cryptographically
+    const ticket = await client.verifyIdToken({
+      idToken: credential,
+      audience: config.googleClientId || undefined,
+    });
+
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      return res.status(400).json({
+        success: false,
+        error: 'Unable to extract verified email from Google identity payload.',
+      });
+    }
+
+    const { email, name, sub: googleId, picture: avatarUrl } = payload;
+    const fullName = name || email.split('@')[0];
+
+    // Check if user already exists
+    let user;
+    const existing = await query('SELECT * FROM users WHERE email = $1', [email.toLowerCase()]);
+
+    if (existing.rows.length > 0) {
+      user = existing.rows[0];
+
+      if (user.account_status !== 'active') {
+        return res.status(403).json({
+          success: false,
+          error: 'Your account is suspended or locked.',
+        });
+      }
+
+      // Update google_id or avatar if not set
+      if (!user.google_id || !user.avatar_url) {
+        await query(
+          `UPDATE users SET google_id = COALESCE(google_id, $1), avatar_url = COALESCE(avatar_url, $2), updated_at = NOW() WHERE id = $3`,
+          [googleId, avatarUrl, user.id]
+        );
+      }
+    } else {
+      // Create new user account via Google OAuth
+      const insertRes = await query(
+        `INSERT INTO users (full_name, email, google_id, avatar_url, account_status)
+         VALUES ($1, $2, $3, $4, 'active')
+         RETURNING id, full_name, email, google_id, avatar_url, account_status, created_at`,
+        [fullName, email.toLowerCase(), googleId, avatarUrl]
+      );
+      user = insertRes.rows[0];
+    }
+
+    // Create session
+    const rawSessionToken = generateRandomToken(32);
+    const sessionTokenHash = hashSha256(rawSessionToken);
+    const expiresAt = new Date(Date.now() + config.sessionTtlSeconds * 1000);
+
+    await query(
+      `INSERT INTO sessions (user_id, session_token_hash, expires_at, ip_address, user_agent)
+       VALUES ($1, $2, $3, $4, $5)`,
+      [user.id, sessionTokenHash, expiresAt, ipAddress, userAgent]
+    );
+
+    await recordAuditLog({
+      userId: user.id,
+      eventType: 'GOOGLE_LOGIN_SUCCESS',
+      result: 'SUCCESS',
+      ipAddress,
+      userAgent,
+      details: { email: user.email, googleId },
+    });
+
+    res.cookie('cns_session', rawSessionToken, {
+      httpOnly: true,
+      secure: config.cookieSecure,
+      sameSite: config.cookieSameSite,
+      maxAge: config.sessionTtlSeconds * 1000,
+    });
+
+    return res.json({
+      success: true,
+      message: 'Google authentication successful',
+      user: {
+        id: user.id,
+        fullName: user.full_name,
+        email: user.email,
+        avatarUrl: user.avatar_url,
+        accountStatus: user.account_status,
+        createdAt: user.created_at,
+      },
+      token: rawSessionToken,
+    });
+  } catch (error) {
+    console.error('[GOOGLE AUTH ERROR]:', error);
+    await recordAuditLog({
+      eventType: 'GOOGLE_LOGIN_FAILED',
+      result: 'FAILURE',
+      ipAddress,
+      userAgent,
+      details: { error: error.message },
+    });
+    return res.status(401).json({
+      success: false,
+      error: `Google verification failed: ${error.message}`,
+    });
+  }
 };

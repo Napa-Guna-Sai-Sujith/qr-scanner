@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import {
   Lock,
@@ -20,7 +21,7 @@ export const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  const { login } = useAuth();
+  const { login, googleLogin } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -39,6 +40,23 @@ export const LoginPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      setLoading(true);
+      setError('');
+      await googleLogin(credentialResponse.credential);
+      navigate(from, { replace: true });
+    } catch (err) {
+      setError(err.message || 'Google authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Google sign-in was closed or failed.');
   };
 
   const fillDemoAccount = (demoEmail) => {
@@ -140,6 +158,27 @@ export const LoginPage = () => {
             )}
           </button>
         </form>
+
+        {/* Google OAuth Mail Login */}
+        <div className="space-y-3 pt-1">
+          <div className="relative flex items-center justify-center">
+            <div className="border-t border-cyber-700 w-full" />
+            <span className="bg-cyber-850 px-3 text-[11px] font-mono text-slate-400 uppercase tracking-wider shrink-0">
+              Or Sign In With Mail
+            </span>
+            <div className="border-t border-cyber-700 w-full" />
+          </div>
+
+          <div className="flex justify-center w-full">
+            <GoogleLogin
+              onSuccess={handleGoogleSuccess}
+              onError={handleGoogleError}
+              theme="filled_black"
+              shape="pill"
+              text="signin_with"
+            />
+          </div>
+        </div>
 
         {/* Demo Fast Fill Buttons */}
         <div className="p-3 bg-cyber-900/80 rounded-xl border border-cyber-700/60 space-y-2">
