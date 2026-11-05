@@ -1,9 +1,23 @@
 import axios from 'axios';
 
+const getApiBaseUrl = () => {
+  if (import.meta.env.VITE_API_URL) {
+    return `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`;
+  }
+  // When running on production domain (e.g. Vercel), point directly to live Render backend
+  if (
+    typeof window !== 'undefined' &&
+    window.location.hostname &&
+    !window.location.hostname.includes('localhost') &&
+    !window.location.hostname.includes('127.0.0.1')
+  ) {
+    return 'https://qr-scanner-8wbj.onrender.com/api';
+  }
+  return '/api';
+};
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL
-    ? `${import.meta.env.VITE_API_URL.replace(/\/+$/, '')}/api`
-    : '/api',
+  baseURL: getApiBaseUrl(),
   withCredentials: true, // Send HTTP-only session cookies
   headers: {
     'Content-Type': 'application/json',
