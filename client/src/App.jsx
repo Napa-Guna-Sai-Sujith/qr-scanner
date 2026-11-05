@@ -29,11 +29,18 @@ export function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/qr-login" element={<QRLoginPage />} />
               <Route path="/qr-scan" element={<QRScannerPage />} />
               <Route path="/qr-approve" element={<QRApprovalPage />} />
 
               {/* Protected Routes */}
+              <Route
+                path="/qr-login"
+                element={
+                  <ProtectedRoute>
+                    <QRLoginPage />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/dashboard"
                 element={

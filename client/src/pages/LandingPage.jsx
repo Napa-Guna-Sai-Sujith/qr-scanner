@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import {
   ShieldCheck,
   QrCode,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react';
 
 export const LandingPage = () => {
+  const { user } = useAuth();
   return (
     <div className="space-y-12 sm:space-y-16 pb-16">
       {/* Hero Section */}
@@ -37,30 +39,70 @@ export const LandingPage = () => {
           </p>
 
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-center gap-3 sm:gap-4 pt-3 sm:pt-4 max-w-md sm:max-w-none mx-auto">
-            <Link
-              to="/qr-login"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-cyber-cyan text-cyber-900 font-bold hover:bg-cyber-cyanGlow transition-all shadow-glow text-sm sm:text-base"
-            >
-              <QrCode className="w-5 h-5 shrink-0" />
-              <span>Launch QR Login Demo</span>
-              <ArrowRight className="w-4 h-4 shrink-0" />
-            </Link>
+            {user ? (
+              <>
+                <Link
+                  to="/qr-login"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-cyber-cyan text-cyber-900 font-bold hover:bg-cyber-cyanGlow transition-all shadow-glow text-sm sm:text-base"
+                >
+                  <QrCode className="w-5 h-5 shrink-0" />
+                  <span>Generate Login QR Code</span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </Link>
 
-            <Link
-              to="/qr-scan"
-              className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-cyber-850 text-cyber-cyan font-semibold border border-cyber-cyan/30 hover:bg-cyber-800 transition-all text-sm sm:text-base"
-            >
-              <Smartphone className="w-5 h-5 shrink-0" />
-              <span>Open Authenticator Scanner</span>
-            </Link>
+                <Link
+                  to="/qr-scan"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-cyber-850 text-cyber-cyan font-semibold border border-cyber-cyan/30 hover:bg-cyber-800 transition-all text-sm sm:text-base"
+                >
+                  <Smartphone className="w-5 h-5 shrink-0" />
+                  <span>Open Authenticator Scanner</span>
+                </Link>
 
-            <Link
-              to="/register"
-              className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-cyber-800 text-slate-200 font-semibold border border-cyber-700 hover:bg-cyber-700 hover:text-white transition-all text-sm sm:text-base"
-            >
-              <span>Create Account</span>
-            </Link>
+                <Link
+                  to="/dashboard"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-cyber-800 text-slate-200 font-semibold border border-cyber-700 hover:bg-cyber-700 hover:text-white transition-all text-sm sm:text-base"
+                >
+                  <ShieldCheck className="w-4 h-4 text-cyber-cyan shrink-0" />
+                  <span>Dashboard ({user.fullName?.split(' ')[0] || 'My Account'})</span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  state={{ from: { pathname: '/qr-login' }, requiresAuthNotice: true }}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-cyber-cyan text-cyber-900 font-bold hover:bg-cyber-cyanGlow transition-all shadow-glow text-sm sm:text-base"
+                >
+                  <QrCode className="w-5 h-5 shrink-0" />
+                  <span>Launch QR Login Demo</span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
+                </Link>
+
+                <Link
+                  to="/qr-scan"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-cyber-850 text-cyber-cyan font-semibold border border-cyber-cyan/30 hover:bg-cyber-800 transition-all text-sm sm:text-base"
+                >
+                  <Smartphone className="w-5 h-5 shrink-0" />
+                  <span>Open Authenticator Scanner</span>
+                </Link>
+
+                <Link
+                  to="/register"
+                  state={{ from: { pathname: '/qr-login' } }}
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3.5 rounded-xl bg-cyber-800 text-slate-200 font-semibold border border-cyber-700 hover:bg-cyber-700 hover:text-white transition-all text-sm sm:text-base"
+                >
+                  <span>Create Account</span>
+                </Link>
+              </>
+            )}
           </div>
+
+          {!user && (
+            <p className="text-xs text-slate-400 font-mono flex items-center justify-center gap-1.5 pt-1">
+              <Lock className="w-3.5 h-3.5 text-cyber-cyan" />
+              <span>Login or Registration required before launching QR challenge.</span>
+            </p>
+          )}
         </div>
       </section>
 

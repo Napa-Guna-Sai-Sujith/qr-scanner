@@ -12,6 +12,7 @@ import {
   EyeOff,
   Loader2,
   Sparkles,
+  ShieldCheck,
 } from 'lucide-react';
 
 export const LoginPage = () => {
@@ -26,6 +27,7 @@ export const LoginPage = () => {
   const location = useLocation();
 
   const from = location.state?.from?.pathname || '/dashboard';
+  const requiresAuthNotice = location.state?.requiresAuthNotice || location.state?.from?.pathname === '/qr-login';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -66,21 +68,35 @@ export const LoginPage = () => {
 
   return (
     <div className="max-w-md mx-auto my-6 sm:my-12 px-4 space-y-5 sm:space-y-6">
-      {/* QR Login Banner */}
-      <div className="bg-gradient-to-r from-cyber-cyan/15 via-blue-500/10 to-transparent border border-cyber-cyan/30 rounded-2xl p-4 flex items-center justify-between">
-        <div className="space-y-1">
-          <span className="text-xs font-mono uppercase tracking-wider text-cyber-cyan font-bold flex items-center gap-1.5">
-            <QrCode className="w-3.5 h-3.5" /> Password-Free Alternative
-          </span>
-          <p className="text-xs sm:text-sm text-slate-200">Authenticate securely using camera & cryptographic token</p>
+      {/* Contextual Notice Banner */}
+      {requiresAuthNotice ? (
+        <div className="bg-cyber-900 border border-cyber-cyan/50 rounded-2xl p-4 flex items-start gap-3 shadow-glow animate-fade-in">
+          <ShieldCheck className="w-5 h-5 text-cyber-cyan shrink-0 mt-0.5" />
+          <div className="space-y-1">
+            <span className="text-xs font-mono uppercase tracking-wider text-cyber-cyan font-bold block">
+              Login Required Before Launching QR Challenge
+            </span>
+            <p className="text-xs text-slate-300 leading-relaxed">
+              Please authenticate your identity with Google or your credentials below. Once logged in, you will be redirected to generate the secure QR code to authorize Device B.
+            </p>
+          </div>
         </div>
-        <Link
-          to="/qr-login"
-          className="px-3.5 py-2 rounded-xl bg-cyber-cyan text-cyber-900 font-bold text-xs hover:bg-cyber-cyanGlow transition-all shrink-0 ml-3"
-        >
-          Use QR
-        </Link>
-      </div>
+      ) : (
+        <div className="bg-gradient-to-r from-cyber-cyan/15 via-blue-500/10 to-transparent border border-cyber-cyan/30 rounded-2xl p-4 flex items-center justify-between">
+          <div className="space-y-1">
+            <span className="text-xs font-mono uppercase tracking-wider text-cyber-cyan font-bold flex items-center gap-1.5">
+              <QrCode className="w-3.5 h-3.5" /> Scanning from Phone?
+            </span>
+            <p className="text-xs sm:text-sm text-slate-200">Open camera scanner to read computer QR codes</p>
+          </div>
+          <Link
+            to="/qr-scan"
+            className="px-3.5 py-2 rounded-xl bg-cyber-cyan text-cyber-900 font-bold text-xs hover:bg-cyber-cyanGlow transition-all shrink-0 ml-3"
+          >
+            Open Scanner
+          </Link>
+        </div>
+      )}
 
       <div className="bg-cyber-850 border border-cyber-700/80 rounded-2xl p-5 sm:p-8 shadow-xl space-y-6">
         <div className="text-center space-y-2">
@@ -206,7 +222,7 @@ export const LoginPage = () => {
 
         <div className="text-center text-xs text-slate-400 pt-2 border-t border-cyber-700/60">
           New to the system?{' '}
-          <Link to="/register" className="text-cyber-cyan hover:underline font-medium">
+          <Link to="/register" state={location.state} className="text-cyber-cyan hover:underline font-medium">
             Register Account
           </Link>
         </div>

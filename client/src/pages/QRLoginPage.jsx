@@ -158,7 +158,7 @@ export const QRLoginPage = () => {
       setError('');
       setStatus('pending');
 
-      const data = await qrApi.initiate();
+      const data = await qrApi.initiate(user?.email);
       if (data.success) {
         setChallenge(data);
       } else {
@@ -170,7 +170,7 @@ export const QRLoginPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?.email]);
 
   // Initialize on mount
   useEffect(() => {

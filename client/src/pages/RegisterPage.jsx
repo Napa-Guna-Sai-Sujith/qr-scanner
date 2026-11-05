@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -26,13 +26,17 @@ export const RegisterPage = () => {
 
   const { register, googleLogin } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = location.state?.from?.pathname || '/dashboard';
+  const requiresAuthNotice = location.state?.from?.pathname === '/qr-login';
 
   const handleGoogleSuccess = async (credentialResponse) => {
     try {
       setLoading(true);
       setError('');
       await googleLogin(credentialResponse.credential);
-      navigate('/dashboard');
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err.message || 'Google registration failed');
     } finally {
@@ -72,7 +76,7 @@ export const RegisterPage = () => {
     try {
       setLoading(true);
       await register(fullName, email, password);
-      navigate('/dashboard');
+      navigate(from, { replace: true });
     } catch (err) {
       setError(err.message || 'Registration failed');
     } finally {
@@ -90,6 +94,13 @@ export const RegisterPage = () => {
           <h1 className="text-2xl font-bold text-white">Create Security Account</h1>
           <p className="text-sm text-slate-400">Enroll credentials into the cryptographic directory</p>
         </div>
+
+        {requiresAuthNotice && (
+          <div className="p-3.5 rounded-xl bg-cyber-cyan/10 border border-cyber-cyan/30 text-cyber-cyan text-xs flex items-start gap-2.5 animate-fade-in">
+            <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+            <span>Create an account or sign in with Google to access the QR login generator.</span>
+          </div>
+        )}
 
         {error && (
           <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-start gap-2.5">
@@ -233,12 +244,8 @@ export const RegisterPage = () => {
 
         <div className="text-center text-xs text-slate-400 pt-2 border-t border-cyber-700/60">
           Already enrolled?{' '}
-          <Link to="/login" className="text-cyber-cyan hover:underline font-medium">
-            Sign in with Password
-          </Link>{' '}
-          or{' '}
-          <Link to="/qr-login" className="text-cyber-cyan hover:underline font-medium">
-            Use QR Challenge
+          <Link to="/login" state={location.state} className="text-cyber-cyan hover:underline font-medium">
+            Sign in with Password or Mail
           </Link>
         </div>
       </div>
